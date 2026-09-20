@@ -37,7 +37,7 @@ class HyperOsKeyguardAdapter(context: Context) : ModPack(context) {
             "onAttachedToWindow",
             "onLayout"
         ).suppressError().runAfter { hookParam ->
-            if (hideLockIcon) hideKnownLockIcon(hookParam.thisObject)
+            if (hideLockIcon) (hookParam.thisObject as? View)?.let(::hideKnownLockIcon)
         }
     }
 
