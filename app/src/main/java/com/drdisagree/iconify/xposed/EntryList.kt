@@ -42,6 +42,7 @@ import com.drdisagree.iconify.xposed.modules.statusbar.SwapSignalNetworkType
 import com.drdisagree.iconify.xposed.modules.statusbar.SwapWiFiCellular
 import com.drdisagree.iconify.xposed.modules.volume.VolumePanel
 import com.drdisagree.iconify.xposed.modules.hyperos.HyperOsStatusBar
+import com.drdisagree.iconify.xposed.modules.hyperos.HyperOsNotificationAdapter
 import com.drdisagree.iconify.xposed.modules.hyperos.HyperOsStatusBarIcons
 import com.drdisagree.iconify.xposed.modules.hyperos.HyperOsKeyguardAdapter
 import com.drdisagree.iconify.xposed.modules.hyperos.HyperOsPluginAdapter
@@ -69,6 +70,7 @@ object EntryList {
 
     private val hyperOsModPacks: List<Class<out ModPack>> = listOf(
         HyperOsStatusBar::class.java,
+        HyperOsNotificationAdapter::class.java,
         HyperOsStatusBarIcons::class.java,
         HyperOsKeyguardAdapter::class.java,
         AppIconsInStatusbar::class.java,
