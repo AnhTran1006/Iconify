@@ -23,7 +23,7 @@ object HyperOsEnvironment {
     val isHyperOs: Boolean
         get() = isXiaomiFamily &&
             (Build.DISPLAY.contains("HyperOS", true) ||
-                systemProperty("ro.mi.os.version.name").isNotBlank())
+                systemProperty("ro.mi.os.version.name").isNotBlank() ||\n                systemProperty("ro.mi.os.version.code").isNotBlank())
 
     val generation: Generation
         get() {
