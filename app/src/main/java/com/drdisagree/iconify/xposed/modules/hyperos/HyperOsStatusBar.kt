@@ -93,8 +93,8 @@ class HyperOsStatusBar(context: Context) : ModPack(context) {
         }
     }
 
-    override fun handleLoadPackage(param: LoadPackageParam) {
-        if (!HyperOsEnvironment.usesSystemUiBackend(param.packageName)) return
+    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+        if (!HyperOsEnvironment.usesSystemUiBackend(loadPackageParam.packageName)) return
 
         val batteryClass = findClass(
             "$SYSTEMUI_PACKAGE.statusbar.views.MiuiBatteryMeterView",
