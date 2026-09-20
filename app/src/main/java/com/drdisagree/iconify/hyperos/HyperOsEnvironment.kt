@@ -27,7 +27,7 @@ object HyperOsEnvironment {
 
     val generation: Generation
         get() {
-            val version = systemProperty("ro.mi.os.version.name")
+            val version = systemProperty("ro.mi.os.version.name").ifBlank { systemProperty("ro.mi.os.version.code") }
             val major = Regex("(\\d+)").find(version)?.groupValues?.getOrNull(1)
                 ?: return Generation.UNKNOWN
             return when (major) {
