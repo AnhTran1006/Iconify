@@ -7,13 +7,8 @@ import android.graphics.drawable.Drawable
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.TextView
-import com.drdisagree.iconify.R
 import com.drdisagree.iconify.data.common.Const.SYSTEMUI_PACKAGE
-import com.drdisagree.iconify.data.common.Preferences.BATTERY_STYLE_CIRCLE
-import com.drdisagree.iconify.data.common.Preferences.BATTERY_STYLE_DOTTED_CIRCLE
-import com.drdisagree.iconify.data.common.Preferences.BATTERY_STYLE_FILLED_CIRCLE
 import com.drdisagree.iconify.data.common.Preferences.BATTERY_STYLE_DEFAULT
 import com.drdisagree.iconify.data.keys.XposedKey
 import com.drdisagree.iconify.hyperos.HyperOsEnvironment
@@ -21,22 +16,19 @@ import com.drdisagree.iconify.xposed.HookRes.Companion.modRes
 import com.drdisagree.iconify.xposed.ModPack
 import com.drdisagree.iconify.xposed.modules.extras.utils.misc.ViewHelper.toPx
 import com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.XposedHook.Companion.findClass
-import com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.getField
 import com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.getFieldSilently
 import com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.hookMethod
 import com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.log
 import com.drdisagree.iconify.xposed.modules.statusbar.batterystyles.BatteryDrawable
-import com.drdisagree.iconify.xposed.modules.statusbar.batterystyles.CircleBattery
-import com.drdisagree.iconify.xposed.modules.statusbar.batterystyles.CircleFilledBattery
 import com.drdisagree.iconify.xposed.utils.XPrefs.Xprefs
 import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
-import java.lang.reflect.Field
 
 /**
- * HyperOS adapter for Iconify's status-bar battery system.
+ * HyperOS adapter for Iconify's status-bar battery implementation.
  *
- * HyperOS uses MiuiBatteryMeterView instead of the AOSP battery pipeline.
- * The adapter deliberately uses optional reflection and fails open on unknown builds.
+ * HyperOS uses MiuiBatteryMeterView and keeps the battery state in that view,
+ * so the adapter consumes the existing Iconify battery drawables and preferences
+ * without depending on the AOSP BatteryStyleManager view pipeline.
  */
 class HyperOsStatusBar(context: Context) : ModPack(context) {
 
@@ -51,6 +43,20 @@ class HyperOsStatusBar(context: Context) : ModPack(context) {
     private var marginTop = 0
     private var marginRight = 0
     private var marginBottom = 0
+    private var scaledPerimeterAlpha = false
+    private var scaledFillAlpha = false
+    private var rainbowFill = false
+    private var blendColor = false
+    private var chargingColor = Color.BLACK
+    private var fillColor = Color.BLACK
+    private var fillGradColor = Color.BLACK
+    private var powerSaveColor = Color.BLACK
+    private var powerSaveFillColor = Color.BLACK
+    private var chargingStyle = 0
+    private var chargingEnabled = false
+    private var chargingSize = 14
+    private var chargingMarginLeft = 1
+    private var chargingMarginRight = 0
 
     override fun updatePrefs(vararg key: String) {
         Xprefs.apply {
@@ -65,6 +71,20 @@ class HyperOsStatusBar(context: Context) : ModPack(context) {
             marginTop = mContext.toPx(getInt(XposedKey.CUSTOM_BATTERY_MARGIN_TOP))
             marginRight = mContext.toPx(getInt(XposedKey.CUSTOM_BATTERY_MARGIN_RIGHT))
             marginBottom = mContext.toPx(getInt(XposedKey.CUSTOM_BATTERY_MARGIN_BOTTOM))
+            scaledPerimeterAlpha = getBoolean(XposedKey.CUSTOM_BATTERY_PERIMETER_ALPHA)
+            scaledFillAlpha = getBoolean(XposedKey.CUSTOM_BATTERY_FILL_ALPHA)
+            rainbowFill = getBoolean(XposedKey.CUSTOM_BATTERY_RAINBOW_FILL_COLOR)
+            blendColor = getBoolean(XposedKey.CUSTOM_BATTERY_BLEND_COLOR)
+            chargingColor = getColor(XposedKey.CUSTOM_BATTERY_CHARGING_COLOR)
+            fillColor = getColor(XposedKey.CUSTOM_BATTERY_FILL_COLOR)
+            fillGradColor = getColor(XposedKey.CUSTOM_BATTERY_FILL_GRAD_COLOR)
+            powerSaveColor = getColor(XposedKey.CUSTOM_BATTERY_POWER_SAVE_INDICATOR_COLOR)
+            powerSaveFillColor = getColor(XposedKey.CUSTOM_BATTERY_POWER_SAVE_FILL_COLOR)
+            chargingEnabled = getBoolean(XposedKey.CUSTOM_BATTERY_CHARGING_ICON_SWITCH)
+            chargingStyle = getInt(XposedKey.CUSTOM_BATTERY_CHARGING_ICON_STYLE)
+            chargingSize = getInt(XposedKey.CUSTOM_BATTERY_CHARGING_ICON_WIDTH_HEIGHT)
+            chargingMarginLeft = getInt(XposedKey.CUSTOM_BATTERY_CHARGING_ICON_MARGIN_LEFT)
+            chargingMarginRight = getInt(XposedKey.CUSTOM_BATTERY_CHARGING_ICON_MARGIN_RIGHT)
         }
     }
 
@@ -76,17 +96,14 @@ class HyperOsStatusBar(context: Context) : ModPack(context) {
             suppressError = true
         ) ?: return
 
-        batteryClass
-            .hookMethod("updateAll$1")
-            .suppressError()
-            .runAfter { hookParam ->
-                try {
-                    applyBatteryView(hookParam.thisObject)
-                } catch (t: Throwable) {
-                    log(this, "HyperOS battery adapter failed; keeping stock battery")
-                    log(this, t)
-                }
+        batteryClass.hookMethod("updateAll$1").suppressError().runAfter { hookParam ->
+            try {
+                applyBatteryView(hookParam.thisObject)
+            } catch (t: Throwable) {
+                log(this, "HyperOS battery adapter failed; keeping stock battery")
+                log(this, t)
             }
+        }
     }
 
     private fun applyBatteryView(instance: Any) {
@@ -96,24 +113,38 @@ class HyperOsStatusBar(context: Context) : ModPack(context) {
         val icon = instance.getFieldSilently("mBatteryIconView") as? ImageView
         val charging = instance.getFieldSilently("mBatteryChargingView") as? ImageView
 
-        percent?.visibility = if (hidePercent || insidePercent) View.GONE else View.VISIBLE
-        mark?.visibility = if (hidePercent || insidePercent) View.GONE else View.VISIBLE
-        digit?.visibility = if (hidePercent || insidePercent) View.GONE else View.VISIBLE
+        val hideText = hidePercent || insidePercent
+        percent?.visibility = if (hideText) View.GONE else View.VISIBLE
+        mark?.visibility = if (hideText) View.GONE else View.VISIBLE
+        digit?.visibility = if (hideText) View.GONE else View.VISIBLE
 
         if (style == BATTERY_STYLE_DEFAULT) {
             icon?.visibility = if (hideBattery) View.GONE else View.VISIBLE
             return
         }
 
+        val drawable = createDrawable(style) ?: return
         val level = (instance.getFieldSilently("mLevel") as? Int) ?: 0
         val isCharging = (instance.getFieldSilently("mCharging") as? Boolean) ?: false
-        val drawable = createDrawable(style) ?: return
+        val isPowerSave = (instance.getFieldSilently("mPowerSave") as? Boolean) ?: false
+        val fg = percent?.currentTextColor ?: Color.WHITE
 
+        drawable.customizeBatteryDrawable(
+            reverseLayout,
+            scaledPerimeterAlpha,
+            scaledFillAlpha,
+            blendColor,
+            rainbowFill,
+            fillColor,
+            fillGradColor,
+            chargingColor,
+            powerSaveColor,
+            powerSaveFillColor,
+            chargingEnabled
+        )
         drawable.setBatteryLevel(level)
         drawable.setChargingEnabled(isCharging)
-        drawable.setPowerSavingEnabled(false)
-
-        val fg = percent?.currentTextColor ?: Color.WHITE
+        drawable.setPowerSavingEnabled(isPowerSave)
         drawable.setColors(fg, Color.TRANSPARENT, fg)
         drawable.setShowPercentEnabled(insidePercent)
 
@@ -130,25 +161,92 @@ class HyperOsStatusBar(context: Context) : ModPack(context) {
             rotation = if (reverseLayout) 180f else 0f
         }
 
-        charging?.setColorFilter(fg, PorterDuff.Mode.SRC_IN)
-
-        if (insidePercent) {
-            // HyperOS already owns the percentage TextViews; keep the drawable responsible
-            // for the embedded percentage and hide the external text fields.
-            percent?.visibility = View.GONE
-            mark?.visibility = View.GONE
-            digit?.visibility = View.GONE
+        charging?.apply {
+            val chargingDrawable = getChargingDrawable()
+            if (chargingDrawable != null) setImageDrawable(chargingDrawable)
+            visibility = if (isCharging && chargingEnabled) View.VISIBLE else View.GONE
+            setColorFilter(fg, PorterDuff.Mode.SRC_IN)
+            val lp = layoutParams as? ViewGroup.MarginLayoutParams
+            lp?.let {
+                it.width = mContext.toPx(chargingSize)
+                it.height = mContext.toPx(chargingSize)
+                it.setMargins(mContext.toPx(chargingMarginLeft), 0, mContext.toPx(chargingMarginRight), 0)
+                layoutParams = it
+            }
         }
     }
 
     private fun createDrawable(selectedStyle: Int): BatteryDrawable? {
-        return when (selectedStyle) {
-            BATTERY_STYLE_CIRCLE -> CircleBattery(mContext, Color.WHITE)
-            BATTERY_STYLE_DOTTED_CIRCLE -> CircleBattery(mContext, Color.WHITE).apply {
-                setMeterStyle(BATTERY_STYLE_DOTTED_CIRCLE)
-            }
-            BATTERY_STYLE_FILLED_CIRCLE -> CircleFilledBattery(mContext, Color.WHITE)
-            else -> null
+        val className = when (selectedStyle) {
+            1 -> "RLandscapeBattery"
+            2 -> "LandscapeBattery"
+            3 -> "PortraitBatteryCapsule"
+            4 -> "PortraitBatteryLorn"
+            5 -> "PortraitBatteryMx"
+            6 -> "PortraitBatteryAiroo"
+            7 -> "RLandscapeBatteryStyleA"
+            8 -> "LandscapeBatteryStyleA"
+            9 -> "RLandscapeBatteryStyleB"
+            10 -> "LandscapeBatteryStyleB"
+            11 -> "LandscapeBatteryiOS15"
+            12 -> "LandscapeBatteryiOS16"
+            13 -> "PortraitBatteryOrigami"
+            14 -> "LandscapeBatterySmiley"
+            15 -> "LandscapeBatteryMIUIPill"
+            16 -> "LandscapeBatteryColorOS"
+            17 -> "RLandscapeBatteryColorOS"
+            18 -> "LandscapeBatteryA"
+            19 -> "LandscapeBatteryB"
+            20 -> "LandscapeBatteryC"
+            21 -> "LandscapeBatteryD"
+            22 -> "LandscapeBatteryE"
+            23 -> "LandscapeBatteryF"
+            24 -> "LandscapeBatteryG"
+            25 -> "LandscapeBatteryH"
+            26 -> "LandscapeBatteryI"
+            27 -> "LandscapeBatteryJ"
+            28 -> "LandscapeBatteryK"
+            29 -> "LandscapeBatteryL"
+            30 -> "LandscapeBatteryM"
+            31 -> "LandscapeBatteryN"
+            32 -> "LandscapeBatteryO"
+            33 -> "CircleBattery"
+            34 -> "CircleBattery"
+            35 -> "CircleFilledBattery"
+            36 -> "LandscapeBatteryKim"
+            37 -> "LandscapeBatteryOneUI7"
+            else -> return null
         }
+
+        return try {
+            val clazz = Class.forName(
+                "com.drdisagree.iconify.xposed.modules.statusbar.batterystyles.$className"
+            )
+            val drawable = clazz.getConstructor(Context::class.java, Int::class.javaPrimitiveType)
+                .newInstance(mContext, Color.WHITE) as BatteryDrawable
+            if (selectedStyle == 34) {
+                clazz.getMethod("setMeterStyle", Int::class.javaPrimitiveType)
+                    .invoke(drawable, selectedStyle)
+            }
+            drawable
+        } catch (t: Throwable) {
+            log(this, "Unable to create HyperOS battery style $selectedStyle")
+            log(this, t)
+            null
+        }
+    }
+
+    private fun getChargingDrawable(): Drawable? {
+        val names = arrayOf(
+            "ic_charging_bold", "ic_charging_asus", "ic_charging_buddy", "ic_charging_evplug",
+            "ic_charging_idc", "ic_charging_ios", "ic_charging_koplak", "ic_charging_miui",
+            "ic_charging_mmk", "ic_charging_moto", "ic_charging_nokia", "ic_charging_plug",
+            "ic_charging_powercable", "ic_charging_powercord", "ic_charging_powerstation",
+            "ic_charging_realme", "ic_charging_soak", "ic_charging_stres", "ic_charging_strip",
+            "ic_charging_usbcable", "ic_charging_xiaomi"
+        )
+        if (chargingStyle !in names.indices) return null
+        val id = modRes.getIdentifier(names[chargingStyle], "drawable", mContext.packageName)
+        return if (id != 0) modRes.getDrawable(id, mContext.theme) else null
     }
 }
