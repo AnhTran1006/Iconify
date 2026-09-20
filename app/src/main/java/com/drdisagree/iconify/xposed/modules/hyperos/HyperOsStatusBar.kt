@@ -1,9 +1,11 @@
 package com.drdisagree.iconify.xposed.modules.hyperos
 
 import android.content.Context
+import android.widget.LinearLayout
 import com.drdisagree.iconify.hyperos.HyperOsEnvironment
 import com.drdisagree.iconify.xposed.ModPack
 import com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.XposedHook.Companion.findClass
+import com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.hookMethod
 import com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.log
 import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 
@@ -13,15 +15,23 @@ class HyperOsStatusBar(context: Context) : ModPack(context) {
     override fun handleLoadPackage(param: LoadPackageParam) {
         if (!HyperOsEnvironment.usesSystemUiBackend(param.packageName)) return
         try {
-            val battery = findClass("com.android.systemui.statusbar.policy.MiuiBatteryControllerImpl", suppressError = true)
-            val batteryView = findClass("com.android.systemui.statusbar.views.MiuiBatteryMeterView", suppressError = true)
-            val batteryController = findClass("com.android.systemui.statusbar.policy.BatteryControllerImpl", suppressError = true)
-            val wifi = findClass("com.android.systemui.statusbar.connectivity.WifiSignalController", suppressError = true)
-            val mobile = findClass("com.android.systemui.statusbar.connectivity.MobileSignalController", suppressError = true)
-            val iconController = findClass("com.android.systemui.statusbar.phone.ui.StatusBarIconControllerImpl", suppressError = true)
-            log("HyperOS SystemUI mapping: battery=" + (battery != null) + ", batteryView=" + (batteryView != null) + ", batteryController=" + (batteryController != null) + ", wifi=" + (wifi != null) + ", mobile=" + (mobile != null) + ", iconController=" + (iconController != null))
+            val batteryClass = findClass("com.android.systemui.statusbar.views.MiuiBatteryMeterView", suppressError = true)
+            if (batteryClass != null) {
+                batteryClass.hookMethod("updateAll$1", suppressError = true).runAfter { hookParam ->
+                    try {
+                        val view = hookParam.thisObject as? LinearLayout
+                        val percent = hookParam.thisObject.getField("mBatteryPercentView")
+                        val mark = hookParam.thisObject.getField("mBatteryPercentMarkView")
+                        val digit = hookParam.thisObject.getField("mBatteryTextDigitView")
+                        log("HyperOS battery view discovered: view=" + (view != null) + ", percent=" + (percent != null) + ", mark=" + (mark != null) + ", digit=" + (digit != null))
+                    } catch (t: Throwable) {
+                        log(this, "HyperOS battery field discovery failed")
+                        log(this, t)
+                    }
+                }
+            }
         } catch (t: Throwable) {
-            log(this, "HyperOS StatusBar discovery failed; fail-open")
+            log(this, "HyperOS SystemUI discovery failed; fail-open")
             log(this, t)
         }
     }
