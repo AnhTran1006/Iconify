@@ -67,7 +67,8 @@ object EntryList {
         HyperOsStatusBar::class.java,
         AppIconsInStatusbar::class.java,
         SwapWiFiCellular::class.java,
-        SwapSignalNetworkType::class.java
+        SwapSignalNetworkType::class.java,
+        StatusbarMisc::class.java
     )
 
     fun getEntries(packageName: String): ArrayList<Class<out ModPack>> {
