@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.drawable.Drawable
 import android.view.View
+import com.drdisagree.iconify.BuildConfig
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
@@ -251,7 +252,7 @@ class HyperOsStatusBar(context: Context) : ModPack(context) {
             "ic_charging_usbcable", "ic_charging_xiaomi"
         )
         if (chargingStyle !in names.indices) return null
-        val id = modRes.getIdentifier(names[chargingStyle], "drawable", mContext.packageName)
+        val id = modRes.getIdentifier(names[chargingStyle], "drawable", BuildConfig.APPLICATION_ID)
         return if (id != 0) modRes.getDrawable(id, mContext.theme) else null
     }
 }
