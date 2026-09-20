@@ -43,6 +43,7 @@ import com.drdisagree.iconify.xposed.modules.statusbar.SwapSignalNetworkType
 import com.drdisagree.iconify.xposed.modules.statusbar.SwapWiFiCellular
 import com.drdisagree.iconify.xposed.modules.volume.VolumePanel
 import com.drdisagree.iconify.xposed.modules.hyperos.HyperOsStatusBar
+import com.drdisagree.iconify.xposed.modules.hyperos.HyperOsPluginAdapter
 import com.drdisagree.iconify.xposed.utils.HookCheck
 
 object EntryList {
@@ -79,6 +80,9 @@ object EntryList {
     fun getEntries(packageName: String): ArrayList<Class<out ModPack>> {
         val result = ArrayList<Class<out ModPack>>()
         result.addAll(topPriorityCommonModPacks)
+        if (packageName == HyperOsEnvironment.SYSTEMUI_PLUGIN_PACKAGE && !HookEntry.isChildProcess) {
+            if (HyperOsEnvironment.isHyperOs) result.add(HyperOsPluginAdapter::class.java)
+        }
         if (packageName == SYSTEMUI_PACKAGE && !HookEntry.isChildProcess) {
             if (HyperOsEnvironment.isHyperOs) result.addAll(hyperOsModPacks)
             else result.addAll(systemUIModPacks)
