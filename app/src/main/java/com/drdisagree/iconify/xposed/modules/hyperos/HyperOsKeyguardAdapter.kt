@@ -18,8 +18,8 @@ class HyperOsKeyguardAdapter(context: Context) : ModPack(context) {
         hideLockIcon = Xprefs.getBoolean(XposedKey.HIDE_LOCKSCREEN_LOCK_ICON)
     }
 
-    override fun handleLoadPackage(param: LoadPackageParam) {
-        if (!HyperOsEnvironment.usesSystemUiBackend(param.packageName)) return
+    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+        if (!HyperOsEnvironment.usesSystemUiBackend(loadPackageParam.packageName)) return
         hookRootView()
         hookBlueprint()
         hookClockProvider()
