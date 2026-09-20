@@ -5,6 +5,7 @@ import android.widget.LinearLayout
 import com.drdisagree.iconify.hyperos.HyperOsEnvironment
 import com.drdisagree.iconify.xposed.ModPack
 import com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.XposedHook.Companion.findClass
+import com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.getField
 import com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.hookMethod
 import com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.log
 import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
@@ -17,7 +18,7 @@ class HyperOsStatusBar(context: Context) : ModPack(context) {
         try {
             val batteryClass = findClass("com.android.systemui.statusbar.views.MiuiBatteryMeterView", suppressError = true)
             if (batteryClass != null) {
-                batteryClass.hookMethod("updateAll$1", suppressError = true).runAfter { hookParam ->
+                batteryClass.hookMethod("updateAll$1").suppressError().runAfter { hookParam ->
                     try {
                         val view = hookParam.thisObject as? LinearLayout
                         val percent = hookParam.thisObject.getField("mBatteryPercentView")
