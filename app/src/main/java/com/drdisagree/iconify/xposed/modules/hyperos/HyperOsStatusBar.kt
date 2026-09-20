@@ -57,6 +57,8 @@ class HyperOsStatusBar(context: Context) : ModPack(context) {
     private var chargingSize = 14
     private var chargingMarginLeft = 1
     private var chargingMarginRight = 0
+    private var swapPercentage = false
+    private var hideDefaultBattery = false
 
     override fun updatePrefs(vararg key: String) {
         Xprefs.apply {
@@ -85,6 +87,8 @@ class HyperOsStatusBar(context: Context) : ModPack(context) {
             chargingSize = getInt(XposedKey.CUSTOM_BATTERY_CHARGING_ICON_WIDTH_HEIGHT)
             chargingMarginLeft = getInt(XposedKey.CUSTOM_BATTERY_CHARGING_ICON_MARGIN_LEFT)
             chargingMarginRight = getInt(XposedKey.CUSTOM_BATTERY_CHARGING_ICON_MARGIN_RIGHT)
+            swapPercentage = getBoolean(XposedKey.CUSTOM_BATTERY_SWAP_PERCENTAGE)
+            hideDefaultBattery = getBoolean(XposedKey.HIDE_DEFAULT_BATTERY_VIEW)
         }
     }
 
@@ -114,12 +118,13 @@ class HyperOsStatusBar(context: Context) : ModPack(context) {
         val charging = instance.getFieldSilently("mBatteryChargingView") as? ImageView
 
         val hideText = hidePercent || insidePercent
+        val batteryView = instance as? ViewGroup
         percent?.visibility = if (hideText) View.GONE else View.VISIBLE
         mark?.visibility = if (hideText) View.GONE else View.VISIBLE
         digit?.visibility = if (hideText) View.GONE else View.VISIBLE
 
         if (style == BATTERY_STYLE_DEFAULT) {
-            icon?.visibility = if (hideBattery) View.GONE else View.VISIBLE
+            icon?.visibility = if (hideBattery || hideDefaultBattery) View.GONE else View.VISIBLE
             return
         }
 
