@@ -19,8 +19,8 @@ class HyperOsNotificationAdapter(context: Context) : ModPack(context) {
         iconLimit = Xprefs.getFloat(XposedKey.NOTIFICATION_ICONS_LIMIT).roundToInt()
     }
 
-    override fun handleLoadPackage(param: LoadPackageParam) {
-        if (!HyperOsEnvironment.usesSystemUiBackend(param.packageName)) return
+    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+        if (!HyperOsEnvironment.usesSystemUiBackend(loadPackageParam.packageName)) return
         if (iconLimit < 0) return
 
         val cls = findClass(
