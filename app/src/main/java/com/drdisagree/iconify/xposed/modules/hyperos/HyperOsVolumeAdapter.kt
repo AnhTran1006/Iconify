@@ -7,19 +7,12 @@ import com.drdisagree.iconify.data.keys.XposedKey
 import com.drdisagree.iconify.hyperos.HyperOsEnvironment
 import com.drdisagree.iconify.xposed.ModPack
 import com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.XposedHook.Companion.findClass
-import com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.callMethodSilently
-import com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.getFieldSilently
 import com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.hookMethod
 import com.drdisagree.iconify.xposed.utils.XPrefs.Xprefs
 import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
+import de.robv.android.xposed.XposedHelpers
 import kotlin.math.roundToInt
 
-/**
- * HyperOS 4 Control Center volume adapter.
- *
- * OS4 uses the plugin-side VolumeSliderController rather than the legacy
- * VolumeDialogImpl row model.
- */
 class HyperOsVolumeAdapter(context: Context) : ModPack(context) {
 
     private var showPercentage = false
@@ -29,8 +22,7 @@ class HyperOsVolumeAdapter(context: Context) : ModPack(context) {
     }
 
     override fun handleLoadPackage(param: LoadPackageParam) {
-        if (!HyperOsEnvironment.usesPluginBackend(param.packageName)) return
-        if (!showPercentage) return
+        if (!HyperOsEnvironment.usesPluginBackend(param.packageName) || !showPercentage) return
 
         val controller = findClass(
             "miui.systemui.controlcenter.panel.main.volume.VolumeSliderController",
@@ -46,16 +38,27 @@ class HyperOsVolumeAdapter(context: Context) : ModPack(context) {
     }
 
     private fun updateTopText(controller: Any) {
-        val holder = controller.callMethodSilently("getHolder") ?: return
-        val itemView = holder.getFieldSilently("itemView") as? View ?: return
+        val holder = runCatching {
+            XposedHelpers.callMethod(controller, "getHolder")
+        }.getOrNull() ?: return
+
+        val itemView = runCatching {
+            XposedHelpers.getObjectField(holder, "itemView") as? View
+        }.getOrNull() ?: return
+
         val topId = itemView.resources.getIdentifier(
             "top_text", "id", itemView.context.packageName
         )
         if (topId == 0) return
 
         val topText = itemView.findViewById<TextView>(topId) ?: return
-        val max = controller.getFieldSilently("sliderMaxValue") as? Int ?: return
-        val value = controller.callMethodSilently("getTargetValue") as? Int ?: return
+        val max = runCatching {
+            XposedHelpers.getIntField(controller, "sliderMaxValue")
+        }.getOrNull() ?: return
+        val value = runCatching {
+            XposedHelpers.callMethod(controller, "getTargetValue") as Int
+        }.getOrNull() ?: return
+
         if (max <= 0) return
 
         val percent = (value.toFloat() / max.toFloat() * 100f)
