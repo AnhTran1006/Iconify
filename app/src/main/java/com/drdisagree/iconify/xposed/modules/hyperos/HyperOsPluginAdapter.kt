@@ -1,1 +1,26 @@
-package com.drdisagree.iconify.xposed.modules.hyperos\n\nimport android.content.Context\nimport com.drdisagree.iconify.hyperos.HyperOsEnvironment\nimport com.drdisagree.iconify.xposed.ModPack\nimport com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.XposedHook.Companion.findClass\nimport com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.log\nimport de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam\n\n/** HyperOS 4 plugin-side capability discovery. */\nclass HyperOsPluginAdapter(context: Context) : ModPack(context) {\n    override fun updatePrefs(vararg key: String) = Unit\n\n    override fun handleLoadPackage(param: LoadPackageParam) {\n        if (!HyperOsEnvironment.usesPluginBackend(param.packageName)) return\n\n        val targets = listOf(\n            "miui.systemui.plugin.brightness.window.BrightnessWindowViewController",\n            "miui.systemui.controlcenter.windowview.ControlCenterWindowViewController",\n            "miui.systemui.dynamicisland.window.DynamicIslandWindowViewController",\n            "miui.systemui.plugins.domain.interactor.PluginLifecycleInteractor"\n        )\n        val present = targets.count { findClass(it, suppressError = true) != null }\n        log(this, "HyperOS plugin capabilities: " + present + "/" + targets.size + " core targets present")\n    }\n}\n
+package com.drdisagree.iconify.xposed.modules.hyperos
+
+import android.content.Context
+import com.drdisagree.iconify.hyperos.HyperOsEnvironment
+import com.drdisagree.iconify.xposed.ModPack
+import com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.XposedHook.Companion.findClass
+import com.drdisagree.iconify.xposed.modules.extras.utils.toolkit.log
+import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
+
+/** HyperOS 4 plugin-side capability discovery. */
+class HyperOsPluginAdapter(context: Context) : ModPack(context) {
+    override fun updatePrefs(vararg key: String) = Unit
+
+    override fun handleLoadPackage(param: LoadPackageParam) {
+        if (!HyperOsEnvironment.usesPluginBackend(param.packageName)) return
+
+        val targets = listOf(
+            "miui.systemui.plugin.brightness.window.BrightnessWindowViewController",
+            "miui.systemui.controlcenter.windowview.ControlCenterWindowViewController",
+            "miui.systemui.dynamicisland.window.DynamicIslandWindowViewController",
+            "miui.systemui.plugins.domain.interactor.PluginLifecycleInteractor"
+        )
+        val present = targets.count { findClass(it, suppressError = true) != null }
+        log(this, "HyperOS plugin capabilities: " + present + "/" + targets.size + " core targets present")
+    }
+}
