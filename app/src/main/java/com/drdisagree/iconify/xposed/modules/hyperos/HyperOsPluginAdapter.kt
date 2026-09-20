@@ -23,8 +23,8 @@ class HyperOsPluginAdapter(context: Context) : ModPack(context) {
         }
     }
 
-    override fun handleLoadPackage(param: LoadPackageParam) {
-        if (!HyperOsEnvironment.usesPluginBackend(param.packageName)) return
+    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+        if (!HyperOsEnvironment.usesPluginBackend(loadPackageParam.packageName)) return
 
         hookControlCenter()
         hookBrightness()
