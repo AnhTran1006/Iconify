@@ -68,7 +68,12 @@ object EntryList {
         AppIconsInStatusbar::class.java,
         SwapWiFiCellular::class.java,
         SwapSignalNetworkType::class.java,
-        StatusbarMisc::class.java
+        StatusbarMisc::class.java,
+        QSGrid::class.java,
+        QSTransparency::class.java,
+        QSTheme::class.java,
+        QuickSettings::class.java,
+        HeadsUpBlur::class.java
     )
 
     fun getEntries(packageName: String): ArrayList<Class<out ModPack>> {
