@@ -21,8 +21,8 @@ class HyperOsVolumeAdapter(context: Context) : ModPack(context) {
         showPercentage = Xprefs.getBoolean(XposedKey.VOLUME_PANEL_PERCENTAGE)
     }
 
-    override fun handleLoadPackage(param: LoadPackageParam) {
-        if (!HyperOsEnvironment.usesPluginBackend(param.packageName) || !showPercentage) return
+    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+        if (!HyperOsEnvironment.usesPluginBackend(loadPackageParam.packageName) || !showPercentage) return
 
         val controller = findClass(
             "miui.systemui.controlcenter.panel.main.volume.VolumeSliderController",
