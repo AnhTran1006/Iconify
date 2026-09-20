@@ -26,12 +26,17 @@ object HyperOsEnvironment {
                 systemProperty("ro.mi.os.version.name").isNotBlank())
 
     val generation: Generation
-        get() = when (systemProperty("ro.mi.os.version.name").substringBefore('.')) {
-            "4" -> Generation.HYPEROS_4
-            "3" -> Generation.HYPEROS_3
-            "2" -> Generation.HYPEROS_2
-            "1" -> Generation.HYPEROS_1
-            else -> Generation.UNKNOWN
+        get() {
+            val version = systemProperty("ro.mi.os.version.name")
+            val major = Regex("(\\d+)").find(version)?.groupValues?.getOrNull(1)
+                ?: return Generation.UNKNOWN
+            return when (major) {
+                "4" -> Generation.HYPEROS_4
+                "3" -> Generation.HYPEROS_3
+                "2" -> Generation.HYPEROS_2
+                "1" -> Generation.HYPEROS_1
+                else -> Generation.UNKNOWN
+            }
         }
 
     fun systemProperty(name: String): String {
