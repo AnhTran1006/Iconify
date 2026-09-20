@@ -1,6 +1,5 @@
 package com.drdisagree.iconify.xposed
 
-import com.drdisagree.iconify.data.common.Const.FRAMEWORK_PACKAGE
 import com.drdisagree.iconify.data.common.Const.SYSTEMUI_PACKAGE
 import com.drdisagree.iconify.hyperos.HyperOsEnvironment
 import com.drdisagree.iconify.xposed.modules.extras.SettingsLibUtils
@@ -29,7 +28,7 @@ import com.drdisagree.iconify.xposed.modules.quicksettings.HeaderClock
 import com.drdisagree.iconify.xposed.modules.quicksettings.HeaderImage
 import com.drdisagree.iconify.xposed.modules.quicksettings.HeadsUpBlur
 import com.drdisagree.iconify.xposed.modules.quicksettings.QSGrid
-import com.drdisagree.iconify.xposed.modules.quicksettings.QSTheme
+import com.drdisagree.iconify.iconify.xposed.modules.quicksettings.QSTheme
 import com.drdisagree.iconify.xposed.modules.quicksettings.QSTransparency
 import com.drdisagree.iconify.xposed.modules.quicksettings.QuickSettings
 import com.drdisagree.iconify.xposed.modules.statusbar.AppIconsInStatusbar
@@ -43,11 +42,15 @@ import com.drdisagree.iconify.xposed.modules.statusbar.SwapSignalNetworkType
 import com.drdisagree.iconify.xposed.modules.statusbar.SwapWiFiCellular
 import com.drdisagree.iconify.xposed.modules.volume.VolumePanel
 import com.drdisagree.iconify.xposed.modules.hyperos.HyperOsStatusBar
+import com.drdisagree.iconify.xposed.modules.hyperos.HyperOsStatusBarIcons
+import com.drdisagree.iconify.xposed.modules.hyperos.HyperOsKeyguardAdapter
 import com.drdisagree.iconify.xposed.modules.hyperos.HyperOsPluginAdapter
+import com.drdisagree.iconify.xposed.modules.hyperos.HyperOsVolumeAdapter
 import com.drdisagree.iconify.xposed.utils.HookCheck
 
 object EntryList {
-    private val topPriorityCommonModPacks: List<Class<out ModPack>> = listOf(SettingsLibUtils::class.java, HookCheck::class.java)
+    private val topPriorityCommonModPacks: List<Class<out ModPack>> =
+        listOf(SettingsLibUtils::class.java, HookCheck::class.java)
 
     private val systemUIModPacks: List<Class<out ModPack>> = listOf(
         GraphicsColorKt::class.java, MyConstraintSet::class.java, LaunchableViews::class.java,
@@ -60,12 +63,14 @@ object EntryList {
         AppIconsInStatusbar::class.java, SwapWiFiCellular::class.java, SwapSignalNetworkType::class.java,
         DualStatusbar::class.java, StatusbarMisc::class.java, VolumePanel::class.java, ColorizeNotificationView::class.java,
         AppIconInNotification::class.java, HeadsUpBlur::class.java, OnGoingActionChip::class.java, StatusbarLogo::class.java,
-        DepthWallpaper::class.java, LockscreenClock::class.java, LockscreenWeather::class.java, LockscreenWidgets::class.java,
-        QSTheme::class.java
+        DepthWallpaper::class.java, LockscreenClock::class.java, LockscreenWeather::class.java,
+        LockscreenWidgets::class.java, QSTheme::class.java
     )
 
     private val hyperOsModPacks: List<Class<out ModPack>> = listOf(
         HyperOsStatusBar::class.java,
+        HyperOsStatusBarIcons::class.java,
+        HyperOsKeyguardAdapter::class.java,
         AppIconsInStatusbar::class.java,
         SwapWiFiCellular::class.java,
         SwapSignalNetworkType::class.java,
@@ -77,16 +82,24 @@ object EntryList {
         HeadsUpBlur::class.java
     )
 
+    private val hyperOsPluginModPacks: List<Class<out ModPack>> = listOf(
+        HyperOsPluginAdapter::class.java,
+        HyperOsVolumeAdapter::class.java
+    )
+
     fun getEntries(packageName: String): ArrayList<Class<out ModPack>> {
         val result = ArrayList<Class<out ModPack>>()
         result.addAll(topPriorityCommonModPacks)
+
         if (packageName == HyperOsEnvironment.SYSTEMUI_PLUGIN_PACKAGE && !HookEntry.isChildProcess) {
-            if (HyperOsEnvironment.isHyperOs) result.add(HyperOsPluginAdapter::class.java)
+            if (HyperOsEnvironment.isHyperOs) result.addAll(hyperOsPluginModPacks)
         }
+
         if (packageName == SYSTEMUI_PACKAGE && !HookEntry.isChildProcess) {
             if (HyperOsEnvironment.isHyperOs) result.addAll(hyperOsModPacks)
             else result.addAll(systemUIModPacks)
         }
+
         return result
     }
 }
