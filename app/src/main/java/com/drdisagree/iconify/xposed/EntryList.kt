@@ -63,7 +63,7 @@ object EntryList {
         QSTheme::class.java
     )
 
-    private val hyperOsModPacks: List<Class<out ModPack>> = listOf(HyperOsStatusBar::class.java)
+    private val hyperOsModPacks: List<Class<out ModPack>> = listOf(\n        HyperOsStatusBar::class.java,\n        AppIconsInStatusbar::class.java,\n        SwapWiFiCellular::class.java,\n        SwapSignalNetworkType::class.java\n    )
 
     fun getEntries(packageName: String): ArrayList<Class<out ModPack>> {
         val result = ArrayList<Class<out ModPack>>()
