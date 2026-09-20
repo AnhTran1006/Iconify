@@ -19,8 +19,8 @@ class HyperOsStatusBarIcons(context: Context) : ModPack(context) {
         swapNetworkType = Xprefs.getBoolean(XposedKey.STATUSBAR_SWAP_CELLULAR_NETWORK_TYPE)
     }
 
-    override fun handleLoadPackage(param: LoadPackageParam) {
-        if (!HyperOsEnvironment.usesSystemUiBackend(param.packageName) || !swapNetworkType) return
+    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+        if (!HyperOsEnvironment.usesSystemUiBackend(loadPackageParam.packageName) || !swapNetworkType) return
 
         val cls = findClass(
             "com.android.systemui.statusbar.pipeline.mobile.ui.view.ModernStatusBarMobileView",
