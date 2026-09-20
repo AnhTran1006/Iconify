@@ -1,7 +1,6 @@
 package com.drdisagree.iconify.xposed.modules.hyperos
 
 import android.content.Context
-import android.view.View
 import android.view.ViewGroup
 import com.drdisagree.iconify.data.keys.XposedKey
 import com.drdisagree.iconify.hyperos.HyperOsEnvironment
@@ -25,7 +24,7 @@ class HyperOsNotificationAdapter(context: Context) : ModPack(context) {
         if (iconLimit < 0) return
 
         val cls = findClass(
-            "com.android.systemui.statusbar.notification.icon.NotificationIconContainer",
+            "com.android.systemui.statusbar.phone.NotificationIconContainer",
             "com.android.systemui.statusbar.notification.icon.ui.viewbinder.NotificationIconContainerViewBinder",
             suppressError = true
         ) ?: return
@@ -44,12 +43,12 @@ class HyperOsNotificationAdapter(context: Context) : ModPack(context) {
         var visible = 0
         for (i in 0 until root.childCount) {
             val child = root.getChildAt(i)
-            if (child.visibility == View.GONE) continue
+            if (child.visibility == android.view.View.GONE) continue
 
             if (visible++ < iconLimit) {
-                child.visibility = View.VISIBLE
+                child.visibility = android.view.View.VISIBLE
             } else {
-                child.visibility = View.GONE
+                child.visibility = android.view.View.GONE
             }
         }
     }
